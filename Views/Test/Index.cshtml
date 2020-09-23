@@ -27,6 +27,8 @@
 
         import Stats from '/Scripts/threejs/stats.module.js';
 
+        //import TWEEN from '/Scripts/threejs/Tween.js';
+
         import { OrbitControls } from '/Scripts/threejs/OrbitControls.js';
         import { FBXLoader } from '/Scripts/threejs/FBXLoader.js';
 
@@ -46,7 +48,7 @@
         document.body.appendChild( container );
 
         camera = new THREE.PerspectiveCamera( 90, window.innerWidth / window.innerHeight, 1, 2000000 );
-        camera.position.set( 1000, 2000, 2000);
+        camera.position.set( 0, 4000, 4000);
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color( 0xa0a0a0 );
@@ -74,18 +76,52 @@
         );
         mesh.rotation.x = - Math.PI / 2;
         mesh.receiveShadow = true;
-        scene.add( mesh );
+        //scene.add( mesh );
 
         var grid = new THREE.GridHelper( 20000, 20, 0x000000, 0x000000 );
         grid.material.opacity = 0.2;
         grid.material.transparent = true;
         scene.add( grid );
 
+        var geometry = new THREE.Geometry();
+        var material = new THREE.LineBasicMaterial({ vertexColors: true });
+        let p1 = new THREE.Vector3(-8000, 0, -8000);
+        let p2 = new THREE.Vector3(-8000, 0, 0);
+        let p3 = new THREE.Vector3(-7100, 0, -8000);
+        let p4 = new THREE.Vector3(-7100, 0, 0);
+        geometry.vertices.push(p1);
+        geometry.vertices.push(p2);
+        geometry.vertices.push(p3);
+        geometry.vertices.push(p4);
+        geometry.colors.push(new THREE.Color('#c66131'), new THREE.Color('#c66131'), new THREE.Color('#c66131'), new THREE.Color('#c66131'), new THREE.Color('#c66131'), new THREE.Color('#c66131'));
+        //线条
+        var line = new THREE.LineSegments(geometry, material);
+        scene.add(line);
+
         // model
         var loader = new FBXLoader();
             loader.load('/FBX/crane.fbx', function (object) {
 
                 mod = object;
+                //旋转
+                mod.rotateZ(Math.PI / 2);
+
+                console.log(getObjectHalfSize(object));
+
+                //var box3 = new THREE.Box3();
+                //box3.setFromObject(object); //获取包围盒
+                //var size = box3.getSize();        //获取包围盒的大小，即模型的长宽高
+                //object.scale.set(100 / size.x, 100 / size.y * 1.5, 74 / size.z); //见本段注释。换算得到实际大小。
+
+                //var modelObject = object;
+                //var size = getObjectHalfSize(modelObject);
+                //var radius = Math.sqrt(Math.pow(size.x, 2) + Math.pow(size.y, 2) + Math.pow(size.z, 2));
+                //modelObject.scale.multiplyScalar(0.5 / radius);
+                //modelObject.position.y = -size.y * (0.5 / radius);
+                //modelObject.name = mtlName;
+                //scene.add(modelObject);
+
+                mod.position.set(-8000, -0, -8000);
                 //获取动画
                 mixer = new THREE.AnimationMixer(object);
 
@@ -97,7 +133,7 @@
                 });
         mixer = new THREE.AnimationMixer( object );
 
-        scene.add( object );
+                scene.add(object);
 
         });
 
@@ -121,29 +157,45 @@
         }
 
         function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
 
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize( window.innerWidth, window.innerHeight );
+            renderer.setSize( window.innerWidth, window.innerHeight );
 
         }
 
         function animate() {
+            requestAnimationFrame( animate );
 
-        requestAnimationFrame( animate );
+            var delta = clock.getDelta();
+            //mod.position.x++;
+            //mod.position.y++;
+            //mod.position.z++;
 
-        var delta = clock.getDelta();
-        mod.position.x++;
-        //mod.position.y++;
-        //mod.position.z++;
-        if ( mixer ) mixer.update( delta );
+            var z = 10;
+            mod.position.z += z;
+            if (mod.position.z > 400) {
+                mod.position.z = -8000;
+            }
+            //mod.position.z += z;
+            // 物体移动
+            //new TWEEN.Tween(grid.position).to({ z: -10 }, 8000).repeat(Infinity).start();
 
-        renderer.render( scene, camera );
+            if ( mixer ) mixer.update( delta );
 
-        stats.update();
+            renderer.render( scene, camera );
+
+            stats.update();
 
         }
+
+
+        function getObjectHalfSize(obj) {
+            var objectBox = new THREE.Box3();
+            objectBox.setFromObject(obj);
+            return objectBox.max.clone().sub(objectBox.min).divideScalar(2);
+        }
+
 
     </script>
 </body>
