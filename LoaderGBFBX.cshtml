@@ -1,0 +1,338 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="~/scripts/threejs/three.js"></script>
+    <style>
+        body {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+               background-image:url(../FBX/bg.jpg);
+            background-size: 100% 100%;
+            background-repeat:no-repeat;
+        }
+    </style>
+</head>
+<body>
+    <div id="info" style="position:absolute;z-index:100;height:100px;width:300px;right:0;">
+        <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - FBXLoader<br />
+        Character and animation from <a href="https://www.mixamo.com/" target="_blank" rel="noopener">Mixamo</a>
+    </div>
+    <div id="container" style="position:absolute;z-index:1;width:100%;height:100%">
+    </div>
+
+    <script type="module">
+ 
+        //【0】 引入必须的js库
+        import * as THREE from '/scripts/threejs/three.module.js';
+
+        import Stats from '/scripts/threejs/stats.module.js';
+
+        import { OrbitControls } from '/scripts/threejs/OrbitControls.js';
+        import { FBXLoader } from '/scripts/threejs/FBXLoader.js';
+
+        //【1】 定义全局变量
+        var container, stats, controls;
+        var camera, scene, renderer, light,mixer, mod;
+
+        var clock = new THREE.Clock();
+
+        var cranelis=[];
+        var clickObjects=[];
+        //【2】 初始化
+        init();
+
+        //【3】 定时渲染
+        animate();
+
+        function init() {
+
+        container = document.getElementById( 'container' );
+        @*document.body.appendChild( container );*@
+
+        //【2.1】创建场景
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color( 0xa0a0a0 );
+        @*scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );*@
+
+        //【2.2】创建光源 （点光源、平行光、聚光灯、环境光）
+        light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+        light.position.set( 0, 2000, 0 );
+        scene.add( light );
+
+        light = new THREE.DirectionalLight( 0xffffff );
+        light.position.set( 0, 2000, 1000 );
+        light.castShadow = true;
+        light.shadow.camera.top = 180;
+        light.shadow.camera.bottom = - 100;
+        light.shadow.camera.left = - 120;
+        light.shadow.camera.right = 120;
+        scene.add( light );
+
+        // scene.add( new CameraHelper( light.shadow.camera ) );
+
+        //【2.3】创建网格模型 （网格模型包含几何体+材质）
+        @*var grid = new THREE.GridHelper( 40000, 100, 0x000000, 0x000000 );
+        grid.material.opacity = 0.2;//透明度
+        grid.material.transparent = true;//是否开启透明度
+        grid.material.color=0x441144;
+  
+        grid.position.x=20000;
+        grid.position.z=20000;
+        scene.add( grid );*@
+
+
+        var geometry = new THREE.BoxGeometry(40000, 1, 20000);
+        var material = new THREE.MeshBasicMaterial({
+        color: 0x4682B4
+        });
+
+        var area = new THREE.Mesh(geometry, material);
+        area.position.x = 20000;
+        area.position.y = 0.5;
+        area.position.z = 10000;
+        scene.add(area);
+
+        // ground 中心区域增加一个网格  通过材质设置颜色
+        @*var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x111111, depthWrite: false } ) );
+            mesh.rotation.x = - Math.PI / 2;
+            mesh.receiveShadow = true;
+            scene.add( mesh );*@
+
+        //【2.4】创建相机 （透视相机、正射投影相机）
+        //camera = new THREE.PerspectiveCamera( 90, window.innerWidth / window.innerHeight, 1, 20000 );//透视相机
+        camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 100000);
+        @*var s=2000;
+            var k=window.innerWidth / window.innerHeight;
+            camera = new THREE.OrthographicCamera(-s*k,s*k,s,-s,1,20000);//正射投影相机*@
+
+        @*camera.position.set( 20000, 20000, 20000);
+        camera.lookAt(20000,10000,20000);*@
+        
+
+        camera.position.x = 10000;
+        camera.position.y = 8000;
+        camera.position.z = 10000;
+        camera.lookAt(10000, 0, 5000);
+
+
+        //加载纹理
+        var texturePlante = THREE.ImageUtils.loadTexture("/FBX/timg (2).jpg",null,function(t){});
+
+
+        //【2.5】加载3D模型
+        var loader = new FBXLoader();
+        @*loader.load( '/FBX/SambaDancing.fbx', function ( object ) {
+
+            mixer = new THREE.AnimationMixer( object );
+
+            var action = mixer.clipAction( object.animations[ 0 ] );
+            action.play();
+
+            object.traverse( function ( child ) {
+
+            if ( child.isMesh ) {
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            }
+
+            } );
+
+            scene.add( object );
+
+            } );*@
+
+        loader.load( '/FBX/crane.fbx', function ( object ) {
+        object.position.y=1000;
+
+        mod=object;
+
+        @*var te= mod.children[0].children[0]
+        scene.add( te );*@
+
+        mixer = new THREE.AnimationMixer( object );
+
+        @*var action = mixer.clipAction( object.animations[ 0 ] );
+            action.play();*@
+
+        object.traverse( function ( child ) {
+
+        //给模型添加纹理
+        var material = new THREE.MeshPhongMaterial({
+        map:texturePlante
+        });
+        child.material=material;
+
+   
+        if ( child.isMesh ) {
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+       
+        child.name=object.name;
+        clickObjects.push(child);
+           }
+
+        } );
+
+
+
+
+        var t=object.clone();
+        t.name="克隆体";
+        cranelis.push(t);
+
+
+
+
+        scene.add( object );
+        scene.add( t );
+
+
+        } );
+        
+
+        //【2.6】创建渲染器
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.shadowMap.enabled = true;
+        container.appendChild( renderer.domElement );
+
+        //【2.6】添加辅助坐标系
+        var axes = new THREE.AxisHelper(10000);
+        scene.add(axes);
+
+        //【2.7】添加鼠标控制组件
+        controls = new OrbitControls( camera, renderer.domElement );
+        @*controls.target.set( 100, 200, 100);*@
+        controls.target.set( 10000, 0, 8000);
+        controls.update();
+        window.addEventListener( 'resize', onWindowResize, false );
+        @*var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+            controls.addEventListener('change', render);//如果周期性调用requestAnimationFrame，就无需此方法进行监听鼠标事件进行渲染*@
+
+
+        //【2.8】添加模型点击事件
+       
+
+        //点击射线
+        var raycaster = new THREE.Raycaster();
+        var mouse = new THREE.Vector2();
+
+        window.addEventListener('mousemove', onDocumentMouseDown, false);
+
+        function onDocumentMouseDown(event) {
+        event.preventDefault();
+        @*mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+        mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;*@
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        //总结一下，这里必须装网格，mesh，装入组是没有效果的
+        //所以我们将所有的盒子的网格放入对象就可以了
+        // 需要被监听的对象要存储在clickObjects中。
+        var intersects = raycaster.intersectObjects(clickObjects);
+
+        // console.log(intersects)
+        if(intersects.length > 0) {
+        // 在这里填写点击代码
+        alert("dianji");
+        console.log(intersects[0].object.name)
+        //showDetailPage(intersects[0].object.name);
+
+        }
+
+        }
+   
+
+        @*var raycaster = new THREE.Raycaster();
+        var mouse = new THREE.Vector2();
+
+        function onMouseClick(event){
+
+        //将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY/window.innerHeight) *2 + 1;
+
+
+
+
+        // 通过鼠标点的位置和当前相机的矩阵计算出raycaster
+        raycaster.setFromCamera( mouse, camera );
+
+        // 获取raycaster直线和所有模型相交的数组集合
+       // var intersects = raycaster.intersectObjects( cranelis);
+
+        var intersects = raycaster.intersectObjects( scene.children );
+        //console.log(intersects);
+        alert(intersects.length);
+        //将所有的相交的模型的颜色设置为红色
+        for ( var i = 0; i < intersects.length; i++ ) {
+
+        intersects[ i ].object.material.color.set( 0xff0000 );
+        }
+      }
+
+        window.addEventListener( 'click', onMouseClick, false );*@
+
+
+        // stats
+        stats = new Stats();
+        container.appendChild( stats.dom );
+
+        }
+
+        function onWindowResize() {
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+
+        //
+
+        function animate() {
+
+        requestAnimationFrame( animate );
+
+        //var delta = clock.getDelta();
+        mod.position.x++;
+        @*mod.position.y++;*@
+        //if ( mixer ) mixer.update( delta );
+
+        renderer.render( scene, camera );
+
+        //stats.update();
+
+
+
+        for (var i = 0; i < cranelis.length; i++) {
+        var shape = cranelis[i];
+        if (shape.name=="克隆体") {
+
+        shape.position.z++;
+        shape.position.y=1000;
+        }
+        }
+
+
+        //如何通过后台加载生成模型并根据位置进行布局
+        //先根据后台获取所有对象，然后遍历加载模型（相同模型进行克隆）、要确保导入的初始模型都是按实物大小进行建模，然后统一比例进行缩放。
+        
+        }
+
+    </script>
+</body>
+
+</html>
